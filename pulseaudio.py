@@ -5,6 +5,12 @@ class PulseControl:
     def __init__(self, name: str = "Python control"):
         self.pulse = pulsectl.Pulse(name)
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.pulse.close()
+
     def get_stream_list(self) -> [pulsectl.PulseSinkInfo]:
         return self.pulse.sink_input_list()
 
