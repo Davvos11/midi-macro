@@ -60,6 +60,8 @@ class Midi(threading.Thread):
                 if midi.get_init() and self.__midi_in.poll():
                     event = self.__midi_in.read(10)[0][0]
                     status = event[0]
+                    if status not in range(128, 239):
+                        continue
 
                     channel = (status - 127) % 16
                     m_type_int = (status - 128) // 16
