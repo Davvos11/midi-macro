@@ -56,6 +56,8 @@ class Midi(threading.Thread):
         self.__midi_out = midi.Output(output_id)
         self.__running = True
 
+        self.start()
+
     def run(self) -> None:
         while self.__running:
             if midi and midi.get_init() and self.__midi_in.poll():
@@ -85,7 +87,8 @@ class Midi(threading.Thread):
         function(values)
         self.__wait_for_event(event, function)
 
-    def add_event(self, function: Callable[[tuple], None], channel: int, midi_type: Type, value1: int = None, value2: int = None) -> None:
+    def add_event(self, function: Callable[[tuple], None], channel: int, midi_type: Type,
+                  value1: int = None, value2: int = None) -> None:
         e = threading.Event()
         name = "Midi listener for " + str(channel) + " " + str(midi_type)
 
@@ -127,4 +130,3 @@ class Midi(threading.Thread):
         if event is not None:
             event.set()
             self.__queue.put((value1, value2))
-
