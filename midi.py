@@ -1,6 +1,5 @@
 import os
 import threading
-from queue import Queue
 from enum import Enum
 from typing import Callable
 
@@ -82,7 +81,6 @@ class Midi(threading.Thread):
 
     def add_event(self, function: Callable[[tuple], None], channel: int, midi_type: Type,
                   value1: int = None, value2: int = None) -> None:
-        e = threading.Event()
         name = "Midi listener for " + str(channel) + " " + str(midi_type)
 
         if value1 is None:
