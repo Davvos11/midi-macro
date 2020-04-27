@@ -27,9 +27,6 @@ class Midi(threading.Thread):
         CHANNEL_AFTERTOUCH = 5
         PITCH_WHEEL = 6
 
-    __queue = Queue()
-    __listeners_to_remove = []
-
     def __init_map(self) -> dict:
         """
         Create nested dicts for channel, type, value1, value2
@@ -71,7 +68,9 @@ class Midi(threading.Thread):
                     value1 = event[1]
                     value2 = event[2]
 
-                    self.__call_event(channel, m_type, value1, value2)
+                    function = self.__get_event(channel, m_type, value1, value2)
+                    if function is not None:
+                        function((value1, value2))
             except (NameError, AttributeError, RuntimeError):
                 return
 
@@ -81,40 +80,39 @@ class Midi(threading.Thread):
         self.__midi_out.close()
         midi.quit()
 
-    def __wait_for_event(self, event, function) -> None:
-        event.wait()
-        if event in self.__listeners_to_remove:
-            self.__listeners_to_remove.remove(event)
-            return
-        values = self.__queue.get()
-        function(values)
-        self.__wait_for_event(event, function)
-
     def add_event(self, function: Callable[[tuple], None], channel: int, midi_type: Type,
                   value1: int = None, value2: int = None) -> None:
         e = threading.Event()
         name = "Midi listener for " + str(channel) + " " + str(midi_type)
 
         if value1 is None:
-            self.__channel_map[channel][midi_type][-1] = e
-            t = threading.Thread(name=name, target=self.__wait_for_event, args=(e, function))
+            self.__channel_map[channel][midi_type][-1] = function
         elif value2 is None:
             name += " " + str(value1)
-            self.__channel_map[channel][midi_type][value1][-1] = e
-            t = threading.Thread(name=name, target=self.__wait_for_event, args=(e, function))
+            self.__channel_map[channel][midi_type][value1][-1] = function
         else:
             name += " " + str(value1) + " " + str(value2)
-            self.__channel_map[channel][midi_type][value1][value2] = e
-            t = threading.Thread(name=name, target=self.__wait_for_event, args=(e, function))
-
-        t.start()
+            self.__channel_map[channel][midi_type][value1][value2] = function
 
     def remove_event(self, channel: int, midi_type: Type, value1: int = None, value2: int = None) -> None:
-        event = self.__get_event(channel, midi_type, value1, value2)
-        self.__listeners_to_remove.append(event)
-        event.set()
+        try:
+            self.__channel_map[channel][midi_type][value1].pop(value2)
+            return
+        except KeyError:
+            pass
+        try:
+            self.__channel_map[channel][midi_type][value1].pop(-1)
+            return
+        except KeyError:
+            pass
+        try:
+            self.__channel_map[channel][midi_type].pop(-1)
+            return
+        except KeyError:
+            pass
 
-    def __get_event(self, channel: int, midi_type: Type, value1: int = None, value2: int = None) -> threading.Event:
+    def __get_event(self, channel: int, midi_type: Type,
+                    value1: int = None, value2: int = None) -> Callable[[tuple], None]:
         try:
             return self.__channel_map[channel][midi_type][value1][value2]
         except KeyError:
@@ -127,9 +125,3 @@ class Midi(threading.Thread):
             return self.__channel_map[channel][midi_type][-1]
         except KeyError:
             pass
-
-    def __call_event(self, channel: int, midi_type: Type, value1: int = None, value2: int = None) -> None:
-        event = self.__get_event(channel, midi_type, value1, value2)
-        if event is not None:
-            event.set()
-            self.__queue.put((value1, value2))
