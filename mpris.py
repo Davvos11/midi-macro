@@ -8,6 +8,8 @@ class MprisControl:
         self.__dbus_loop = DBusGMainLoop()
         self.__bus = dbus.SessionBus(mainloop=self.__dbus_loop)
 
+        self.__last_controlled_player_name = 'Spotify'
+
     def __enter__(self):
         return self
 
@@ -22,20 +24,20 @@ class MprisControl:
         players = self.get_players()
         return [player for player in players if player.player.PlaybackStatus == 'Playing']
 
-    def __get_priority_player(self, players: [pympris.MediaPlayer]) -> pympris.Player:
+    def __get_priority_player(self, players: [pympris.MediaPlayer]) -> pympris.MediaPlayer:
         if len(players) > 0:
             for player in players:
-                if player.root.Identity == 'Spotify':
-                    return player.player
-            return players[0].player
+                if player.root.Identity == self.__last_controlled_player_name:
+                    return player
+            return players[0]
 
     def play_pause_auto(self) -> None:
         player = self.__get_priority_player(self.get_playing_players())
-        if player is not None:
-            player.PlayPause()
-            return
-        player = self.__get_priority_player(self.get_players())
-        if player is not None:
-            player.PlayPause()
-            return
+        if player is None:
+            player = self.__get_priority_player(self.get_players())
+            if player is None:
+                return
+        self.__last_controlled_player_name = str(player.root.Identity)
+        player.player.PlayPause()
+        return
 
