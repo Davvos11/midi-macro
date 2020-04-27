@@ -125,3 +125,9 @@ class Midi(threading.Thread):
             return self.__channel_map[channel][midi_type][-1]
         except KeyError:
             pass
+
+    def note_out(self, channel: int, note: int, on: bool = True):
+        if on:
+            self.__midi_out.note_on(note, 127, channel)
+        else:
+            self.__midi_out.note_off(note, 0, channel)
