@@ -60,17 +60,20 @@ class Midi(threading.Thread):
 
     def run(self) -> None:
         while self.__running:
-            if midi and midi.get_init() and self.__midi_in.poll():
-                event = self.__midi_in.read(10)[0][0]
-                status = event[0]
+            try:
+                if midi.get_init() and self.__midi_in.poll():
+                    event = self.__midi_in.read(10)[0][0]
+                    status = event[0]
 
-                channel = (status - 127) % 16
-                m_type_int = (status - 128) // 16
-                m_type = self.Type(m_type_int)
-                value1 = event[1]
-                value2 = event[2]
+                    channel = (status - 127) % 16
+                    m_type_int = (status - 128) // 16
+                    m_type = self.Type(m_type_int)
+                    value1 = event[1]
+                    value2 = event[2]
 
-                self.__call_event(channel, m_type, value1, value2)
+                    self.__call_event(channel, m_type, value1, value2)
+            except (NameError, AttributeError, RuntimeError):
+                return
 
     def close(self) -> None:
         self.__running = False

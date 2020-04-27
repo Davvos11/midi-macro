@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "d8c224f6fc4cfd6066032b08e50bcc16645e94b6982b69fb2defd212e4eebcf7"
+            "sha256": "e391c464ee85faf393aa6cde26e05cfd306d2215be4f5036865aee0a1eb43907"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -16,6 +16,14 @@
         ]
     },
     "default": {
+        "keyboard": {
+            "hashes": [
+                "sha256:63ed83305955939ca5c9a73755e5cc43e8242263f5ad5fd3bb7e0b032f3d308b",
+                "sha256:8e9c2422f1217e0bd84489b9ecd361027cc78415828f4fe4f88dd4acd587947b"
+            ],
+            "index": "pypi",
+            "version": "==0.13.5"
+        },
         "pulsectl": {
             "hashes": [
                 "sha256:92a63e4dfa31b3148c4373db9e804764e3e9f77e14374d1247cca9c578bfc6f3",

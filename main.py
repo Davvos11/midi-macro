@@ -1,5 +1,8 @@
 import atexit
+import importlib
+
 import midi
+import functions
 
 # List devices:
 devices = midi.get_devices()
@@ -13,13 +16,30 @@ midi_id = int(input("Choose a midi device: "))
 midi_input_id = [i for i, device in enumerate(devices) if device[1] == devices[midi_id][1] and device[2]][0]
 midi_output_id = [i for i, device in enumerate(devices) if device[1] == devices[midi_id][1] and device[3]][0]
 
-# Start midi thread
-midi = midi.Midi(midi_input_id, midi_output_id)
-
 
 def on_exit():
-    midi.close()
+    midi_device.close()
 
 
 # Register function to run on exit
 atexit.register(on_exit)
+
+
+# Main loop
+try:
+    while True:
+        print('Starting...')
+        # Start midi thread
+        midi_device = midi.Midi(midi_input_id, midi_output_id)
+        # Import functions
+        functions.Functions(midi_device)
+
+        while True:
+            # Wait for keypress
+            k = input()
+            if k == 'r':
+                midi_device.close()
+                importlib.reload(functions)
+                break
+except KeyboardInterrupt:
+    pass
