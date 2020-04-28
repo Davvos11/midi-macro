@@ -1,5 +1,6 @@
 import os
 import threading
+import time
 from enum import Enum
 from typing import Callable
 
@@ -57,6 +58,7 @@ class Midi(threading.Thread):
     def run(self) -> None:
         while self.__running:
             try:
+                time.sleep(0.1)
                 if midi.get_init() and self.__midi_in.poll():
                     event = self.__midi_in.read(10)[0][0]
                     status = event[0]
