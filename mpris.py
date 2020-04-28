@@ -51,3 +51,8 @@ class MprisControl:
         player = self.__get_player_to_control()
         if player is not None:
             player.player.Next()
+
+    def previous_auto(self) -> None:
+        player = self.__get_player_to_control()
+        if player is not None:
+            player.player.Previous()
