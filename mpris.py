@@ -1,3 +1,5 @@
+from typing import Optional
+
 import pympris
 import dbus
 from dbus.mainloop.glib import DBusGMainLoop
@@ -31,13 +33,21 @@ class MprisControl:
                     return player
             return players[0]
 
-    def play_pause_auto(self) -> None:
+    def __get_player_to_control(self) -> Optional[pympris.MediaPlayer]:
         player = self.__get_priority_player(self.get_playing_players())
         if player is None:
             player = self.__get_priority_player(self.get_players())
             if player is None:
                 return
         self.__last_controlled_player_name = str(player.root.Identity)
-        player.player.PlayPause()
-        return
+        return player
 
+    def play_pause_auto(self) -> None:
+        player = self.__get_player_to_control()
+        if player is not None:
+            player.player.PlayPause()
+
+    def next_auto(self) -> None:
+        player = self.__get_player_to_control()
+        if player is not None:
+            player.player.Next()
