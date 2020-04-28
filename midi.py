@@ -66,7 +66,7 @@ class Midi(threading.Thread):
                 # Thus, if there is more data queued, we disable quick mode and keep polling
                 if not quick_mode:
                     # If we are not in quick mode: wait before proceeding
-                    time.sleep(0.1)
+                    time.sleep(0.05)
                 elif not self.__midi_in.poll():
                     # If we are in quick mode but there is no data: disable quick mode
                     quick_mode = False
