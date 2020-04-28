@@ -36,6 +36,16 @@ class Functions:
             else:
                 self.mpris.play_pause_auto()
 
+    def pad_1_3(self, values):
+        """ Toggle mute on the default input"""
+        with PulseControl() as pulse:
+            pulse.mute_default_input()
+
+    def pad_1_2(self, values):
+        """ Toggle mute on the default output"""
+        with PulseControl() as pulse:
+            pulse.mute_default_output()
+
     def __init__(self, midi: Midi):
         self.midi = midi
         self.mpris = MprisControl()
@@ -43,6 +53,8 @@ class Functions:
 
         midi.add_event(self.knobs_1, 1, midi.Type.CC)
         midi.add_event(self.knob_1_8, 1, midi.Type.CC, 8)
+        midi.add_event(self.pad_1_2, 1, midi.Type.NOTE_ON, 37)
+        midi.add_event(self.pad_1_3, 1, midi.Type.NOTE_ON, 38)
         midi.add_event(self.pad_1_4, 1, midi.Type.NOTE_ON, 39)
 
     def __wait_for_next(self, function: Callable[[tuple], None], timeout: float = 0.3) -> Optional[bool]:
