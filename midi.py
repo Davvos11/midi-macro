@@ -56,10 +56,25 @@ class Midi(threading.Thread):
         self.start()
 
     def run(self) -> None:
+        quick_mode = True
         while self.__running:
             try:
-                time.sleep(0.1)
+                # Quick mode is used so that when there is no data coming, we can disable it as to
+                # not hog the CPU by midi.poll()ing every cycle.
+                # However, when there is more data coming after a poll we don't want to wait
+                # because that would cause a lot of lag, for example when a knob is turned.
+                # Thus, if there is more data queued, we disable quick mode and keep polling
+                if not quick_mode:
+                    # If we are not in quick mode: wait before proceeding
+                    time.sleep(0.1)
+                elif not self.__midi_in.poll():
+                    # If we are in quick mode but there is no data: disable quick mode
+                    quick_mode = False
+
                 if midi.get_init() and self.__midi_in.poll():
+                    # If there is data, enable quick mode
+                    quick_mode = True
+
                     event = self.__midi_in.read(10)[0][0]
                     status = event[0]
                     if status not in range(128, 239):
