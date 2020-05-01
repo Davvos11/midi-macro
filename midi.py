@@ -8,13 +8,30 @@ os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 from pygame import midi
 
 
-def get_devices():
+def get_devices() -> [tuple]:
+    """ Returns a list of midi devices """
     midi.init()
     result = []
     for i in range(midi.get_count()):
         result.append(midi.get_device_info(i))
     midi.quit()
     return result
+
+
+def print_devices() -> None:
+    """ Prints a nicely formatted list of midi devices """
+    devices = get_devices()
+    for i, device in enumerate(devices):
+        print(str(i) + ": " + device[0].decode() + " " + device[1].decode() + ", " + ("input" if device[2] else "") +
+              ("output" if device[3] else "") + ", " + ("in use" if device[4] else "not in use"))
+
+
+def get_id_pair(io_id: int) -> (int, int):
+    """ Returns an input and output id based on either an input or an output"""
+    devices = get_devices()
+    in_id = [i for i, device in enumerate(devices) if device[1] == devices[io_id][1] and device[2]][0]
+    out_id = [i for i, device in enumerate(devices) if device[1] == devices[io_id][1] and device[3]][0]
+    return in_id, out_id
 
 
 class Midi(threading.Thread):
@@ -43,16 +60,31 @@ class Midi(threading.Thread):
             c_dict[channel] = t_dict
         return c_dict
 
-    def __init__(self, input_id: int, output_id: int) -> None:
+    def __init__(self, input_id: int = None, output_id: int = None,
+                 tui: bool = False, gui: bool = False) -> None:
         super().__init__()
 
+        if input_id is not None and output_id is not None:
+            if tui or gui:
+                raise ValueError('Please provide input and output devices, _or_ set either GUI or TUI to true')
+            midi.init()
+            self.__midi_in = midi.Input(input_id)
+            self.__midi_out = midi.Output(output_id)
+        elif tui:
+            if gui:
+                raise ValueError('Please set _either_ GUI or TUI to true')
+            midi.init()
+            print_devices()  # List devices
+            midi_io_ids = get_id_pair(int(input("Choose a midi device: ")))  # Ask for device
+            self.__midi_in = midi_io_ids[0]
+            self.__midi_out = midi_io_ids[1]
+        elif gui:
+            return
+        else:
+            raise ValueError('Please provide input and output devices, _or_ set either GUI or TUI to true')
+
         self.__channel_map = self.__init_map()
-
-        midi.init()
-        self.__midi_in = midi.Input(input_id)
-        self.__midi_out = midi.Output(output_id)
         self.__running = True
-
         self.start()
 
     def run(self) -> None:
