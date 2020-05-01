@@ -60,32 +60,32 @@ class Midi(threading.Thread):
             c_dict[channel] = t_dict
         return c_dict
 
-    def __init__(self, input_id: int = None, output_id: int = None,
-                 tui: bool = False, gui: bool = False) -> None:
+    def __init__(self, mode='tui', input_id: int = None, output_id: int = None) -> None:
         super().__init__()
 
         if input_id is not None and output_id is not None:
-            if tui or gui:
-                raise ValueError('Please provide input and output devices, _or_ set either GUI or TUI to true')
             midi.init()
             self.__midi_in = midi.Input(input_id)
             self.__midi_out = midi.Output(output_id)
-        elif tui:
-            if gui:
-                raise ValueError('Please set _either_ GUI or TUI to true')
+        elif mode == 'tui':
             midi.init()
             print_devices()  # List devices
             midi_io_ids = get_id_pair(int(input("Choose a midi device: ")))  # Ask for device
-            self.__midi_in = midi_io_ids[0]
-            self.__midi_out = midi_io_ids[1]
-        elif gui:
+            self.__midi_in = midi.Input(midi_io_ids[0])
+            self.__midi_out = midi.Output(midi_io_ids[1])
+        elif mode == 'gui':
             return
         else:
-            raise ValueError('Please provide input and output devices, _or_ set either GUI or TUI to true')
+            raise ValueError('Please set the mode to \'tui\' or \'gui\'')
+
+        self.__mode = mode
 
         self.__channel_map = self.__init_map()
         self.__running = True
         self.start()
+
+    def get_io_ids(self) -> (int, int):
+        return self.__midi_in, self.__midi_out
 
     def run(self) -> None:
         quick_mode = True

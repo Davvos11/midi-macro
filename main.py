@@ -1,25 +1,20 @@
-import atexit
 import importlib
 
 import midi
 import functions
 
-# List midi devices
-devices = midi.get_devices()
-# Ask user to choose a device
-midi_id = int(input("Choose a midi device: "))
+# Create midi object
+midi_device = midi.Midi('tui')
 
-# Get input and output ids based on the user provided id
-midi_io_ids = midi.get_id_pair(midi_id)
-
-midi_device = None
+# Get input and output ids so we can recreate the object later
+midi_io_ids = midi_device.get_io_ids()
 
 # Main loop
 try:
     while True:
         print('Starting...')
         # Start midi thread
-        midi_device = midi.Midi(midi_io_ids[0], midi_io_ids[1])
+        midi_device = midi.Midi('tui', midi_io_ids[0], midi_io_ids[1])
         # Import functions
         functions.Functions(midi_device)
 
