@@ -68,9 +68,9 @@ class Midi(threading.Thread):
             self.__midi_in = midi.Input(input_id)
             self.__midi_out = midi.Output(output_id)
         else:
-            midi.init()
             print_devices()  # List devices
             midi_io_ids = get_id_pair(int(input("Choose a midi device: ")))  # Ask for device
+            midi.init()
             self.__midi_in = midi.Input(midi_io_ids[0])
             self.__midi_out = midi.Output(midi_io_ids[1])
 
@@ -79,7 +79,7 @@ class Midi(threading.Thread):
         self.start()
 
     def get_io_ids(self) -> (int, int):
-        return self.__midi_in, self.__midi_out
+        return self.__midi_in.device_id, self.__midi_out.device_id
 
     def run(self) -> None:
         quick_mode = True
@@ -97,7 +97,7 @@ class Midi(threading.Thread):
                     # If we are in quick mode but there is no data: disable quick mode
                     quick_mode = False
 
-                if midi.get_init() and self.__midi_in.poll():
+                if self.__midi_in.poll():
                     # If there is data, enable quick mode
                     quick_mode = True
 
@@ -118,6 +118,8 @@ class Midi(threading.Thread):
                         t.start()
             except (NameError, AttributeError, RuntimeError):
                 return
+            except midi.MidiException:
+                pass
 
     def close(self) -> None:
         self.__running = False

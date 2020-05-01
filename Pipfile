@@ -10,6 +10,7 @@ pulsectl = "*"
 pygame = "*"
 pympris = "*"
 dbus-python = ">=1.0"
+pysimplegui = "*"
 
 [requires]
 python_version = "3.8"
