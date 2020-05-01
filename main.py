@@ -4,7 +4,7 @@ import midi
 import functions
 
 # Create midi object
-midi_device = midi.Midi('tui')
+midi_device = midi.Midi()
 
 # Get input and output ids so we can recreate the object later
 midi_io_ids = midi_device.get_io_ids()
@@ -14,7 +14,7 @@ try:
     while True:
         print('Starting...')
         # Start midi thread
-        midi_device = midi.Midi('tui', midi_io_ids[0], midi_io_ids[1])
+        midi_device = midi.Midi(midi_io_ids[0], midi_io_ids[1])
         # Import functions
         functions.Functions(midi_device)
 
