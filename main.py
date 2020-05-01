@@ -12,8 +12,9 @@ if gui:
     devices = midi.get_devices()
     device_list = []
     for i, device in enumerate(devices):
-        device_list.append((str(i), device[0].decode() + " " + device[1].decode() + ", " + ("input" if device[2] else "") +
-                            ("output" if device[3] else "") + ", " + ("in use" if device[4] else "not in use")))
+        device_list.append((str(i), device[0].decode() + " " + device[1].decode() + ", " +
+                            ("input" if device[2] else "") + ("output" if device[3] else "") + ", " +
+                            ("in use" if device[4] else "not in use")))
 
     # Create window:
     sg.theme('DarkBlack')
@@ -38,6 +39,7 @@ else:
 midi_io_ids = midi_device.get_io_ids()
 
 
+# noinspection PyShadowingNames
 def main_gui() -> chr:
     layout = [[sg.Button('Reload'), sg.Button('Exit')]]
     window = sg.Window('Midi Macro', layout)
