@@ -19,8 +19,12 @@ class PulseControl:
             if stream.name == name:
                 return stream
 
-    def set_stream_volume(self, name: str, level: float) -> None:
-        stream = self.get_stream(name)
+    def get_stream_by_prop(self, prop_name: str = None, prop_val: str = None) -> pulsectl.PulseSinkInfo:
+        for stream in self.get_stream_list():
+            if stream.proplist[prop_name] == prop_val:
+                return stream
+
+    def set_stream_volume(self, stream: pulsectl.PulseSinkInfo, level: float) -> None:
         if stream is not None:
             self.pulse.volume_set_all_chans(stream, level)
 
