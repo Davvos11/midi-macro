@@ -18,6 +18,7 @@ if gui:
 
     # Create window:
     sg.theme('DarkBlack')
+    sg.SetOptions(window_location=(100, 100))
     layout = [[sg.Text('Choose a midi device')],
               [sg.Listbox(values=device_list, size=(40, 6), key='-LIST-', enable_events=True)],
               [sg.Button('Cancel')]]
@@ -41,7 +42,16 @@ midi_io_ids = midi_device.get_io_ids()
 
 # noinspection PyShadowingNames
 def main_gui() -> chr:
-    layout = [[sg.Button('Reload'), sg.Button('Exit')]]
+    def pad(n: int): return sg.Button(str(n), button_color=('white', 'black'), size=(8, 5))
+    def knob(n: int): return sg.Slider(range=(0, 128), default_value=10, orientation='v', size=(4, 30))
+
+    col1 = [[pad(i) for i in range(5, 9)],
+            [pad(i) for i in range(1, 5)]]
+    col2 = [[knob(i) for i in range(1, 5)],
+            [knob(i) for i in range(5, 9)]]
+    layout = [[sg.Column(col1), sg.Column(col2)],
+              [sg.Button('Reload'), sg.Button('Exit')]]
+
     window = sg.Window('Midi Macro', layout)
     event, values = window.read()
     if event in (None, 'Exit'):
