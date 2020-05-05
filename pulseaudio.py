@@ -25,22 +25,25 @@ class PulseControl:
             self.pulse.volume_set_all_chans(stream, level)
 
     def mute_default_output(self, mute: bool = None) -> None:
-        default_output = 0
-        # TODO get actual default
+        default_output = self.pulse.server_info().default_sink_name
+        output_index = [p.index for p in self.pulse.sink_list() if p.name == default_output][0]
+
         if mute is None:
-            mute = not self.pulse.sink_info(default_output).mute
+            mute = not self.pulse.sink_info(output_index).mute
 
         if mute:
-            self.pulse.sink_mute(default_output, True)
+            self.pulse.sink_mute(output_index, True)
         else:
-            self.pulse.sink_mute(default_output, False)
+            self.pulse.sink_mute(output_index, False)
 
     def mute_default_input(self, mute: bool = None) -> None:
-        default_input = 1
+        default_input = self.pulse.server_info().default_source_name
+        input_index = [p.index for p in self.pulse.source_list() if p.name == default_input][0]
+
         if mute is None:
-            mute = not self.pulse.source_info(default_input).mute
+            mute = not self.pulse.source_info(input_index).mute
 
         if mute:
-            self.pulse.source_mute(default_input, True)
+            self.pulse.source_mute(input_index, True)
         else:
-            self.pulse.source_mute(default_input, False)
+            self.pulse.source_mute(input_index, False)
