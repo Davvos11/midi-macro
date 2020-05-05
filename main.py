@@ -1,5 +1,7 @@
 import importlib
+import _thread
 import PySimpleGUI as sg
+from queue import Queue
 
 import midi
 import functions
@@ -41,9 +43,9 @@ midi_io_ids = midi_device.get_io_ids()
 
 
 # noinspection PyShadowingNames
-def main_gui() -> chr:
-    def pad(n: int): return sg.Button(str(n), button_color=('white', 'black'), size=(8, 5))
-    def knob(n: int): return sg.Slider(range=(0, 128), default_value=10, orientation='v', size=(4, 30))
+def main_gui(queue: Queue) -> chr:
+    def pad(n: int): return sg.Button(str(n), button_color=('white', 'black'), size=(8, 5), key='pad'+str(n))
+    def knob(n: int): return sg.Slider(range=(0, 128), default_value=10, orientation='v', size=(4, 30), key='knob'+str(n))
 
     col1 = [[pad(i) for i in range(5, 9)],
             [pad(i) for i in range(1, 5)]]
@@ -53,30 +55,49 @@ def main_gui() -> chr:
               [sg.Button('Reload'), sg.Button('Exit')]]
 
     window = sg.Window('Midi Macro', layout)
-    event, values = window.read()
-    if event in (None, 'Exit'):
-        if midi_device is not None:
-            midi_device.close()
-        exit(1)
+    window.finalize()
 
-    window.close()
-    return 'r' if event == 'Reload' else ''
+    def update_on_midi():
+        while True:
+            me = queue.get()
+            if me[0] == 1:
+                if me[1] == midi.Midi.Type.CC:
+                    window['knob'+str(me[2])].update(me[3])
+                elif me[1] == midi.Midi.Type.NOTE_ON:
+                    window['pad'+str(me[2]-35)].update(button_color=('black', 'white'))
+                elif me[1] == midi.Midi.Type.NOTE_OFF:
+                    window['pad'+str(me[2]-35)].update(button_color=('white', 'black'))
+
+    _thread.start_new_thread(update_on_midi, ())
+
+    while True:
+        event, values = window.read()
+
+        if event in (None, 'Exit'):
+            if midi_device is not None:
+                midi_device.close()
+            exit(1)
+        elif event == 'Reload':
+            window.close()
+            return 'r' if event == 'Reload' else ''
 
 
 # Main loop
 k = None
+q = Queue()
+midi_device.set_queue(q)
 try:
     while True:
         print('Starting...')
         # Start midi thread (except on the first loop)
         if k is not None:
-            midi_device = midi.Midi(midi_io_ids[0], midi_io_ids[1])
+            midi_device = midi.Midi(midi_io_ids[0], midi_io_ids[1], q)
         # Import functions
         functions.Functions(midi_device)
 
         while True:
             # Wait for keypress or click
-            k = main_gui() if gui else input()
+            k = main_gui(q) if gui else input()
             if k == 'r':
                 midi_device.close()
                 importlib.reload(functions)

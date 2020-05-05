@@ -3,6 +3,7 @@ import threading
 import time
 from enum import Enum
 from typing import Callable
+from queue import Queue
 
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 from pygame import midi
@@ -60,8 +61,9 @@ class Midi(threading.Thread):
             c_dict[channel] = t_dict
         return c_dict
 
-    def __init__(self, input_id: int = None, output_id: int = None) -> None:
+    def __init__(self, input_id: int = None, output_id: int = None, queue: Queue = None) -> None:
         super().__init__()
+        self.queue = queue
 
         if input_id is not None and output_id is not None:
             midi.init()
@@ -77,6 +79,9 @@ class Midi(threading.Thread):
         self.__channel_map = self.__init_map()
         self.__running = True
         self.start()
+
+    def set_queue(self, queue: Queue):
+        self.queue = queue
 
     def get_io_ids(self) -> (int, int):
         return self.__midi_in.device_id, self.__midi_out.device_id
@@ -111,6 +116,9 @@ class Midi(threading.Thread):
                     m_type = self.Type(m_type_int)
                     value1 = event[1]
                     value2 = event[2]
+
+                    if self.queue is not None:
+                        self.queue.put((channel, m_type, value1, value2))
 
                     function = self.__get_event(channel, m_type, value1, value2)
                     if function is not None:
