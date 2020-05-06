@@ -19,10 +19,26 @@ class PulseControl:
             if stream.name == name:
                 return stream
 
-    def get_stream_by_prop(self, prop_name: str = None, prop_val: str = None) -> pulsectl.PulseSinkInfo:
-        for stream in self.get_stream_list():
-            if stream.proplist[prop_name] == prop_val:
-                return stream
+    def get_stream_by_prop(self, *props: (str, str)) -> pulsectl.PulseSinkInfo:
+        candidate_sets = []
+
+        # Loop through properties and generate sets of candidates that have those properties
+        for i, prop in enumerate(props):
+            candidate_sets.append([])
+            for stream in self.get_stream_list():
+                if stream.proplist[prop[0]] == prop[1]:
+                    candidate_sets[i].append(stream)
+
+        result = []
+        # Get intersection of candidate sets
+        for i, candidates in enumerate(candidate_sets):
+            if i == 0:
+                result = candidates
+                continue
+            for r in result:
+                if r.index not in [c.index for c in candidates]:
+                    result.remove(r)
+        return result[0]
 
     def set_stream_volume(self, stream: pulsectl.PulseSinkInfo, level: float) -> None:
         if stream is not None:

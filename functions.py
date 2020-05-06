@@ -11,7 +11,8 @@ class Functions:
     def knob_1_7(self, values):
         """ Controls Discord volume"""
         with PulseControl() as pulse:
-            stream = pulse.get_stream_by_prop('application.process.binary', 'Discord')
+            stream = pulse.get_stream_by_prop(('application.process.binary', 'Discord'),
+                                              ('application.name', 'WEBRTC VoiceEngine'))
             pulse.set_stream_volume(stream, values[1] / 127)
 
     def knob_1_8(self, values):
@@ -24,8 +25,13 @@ class Functions:
         """ Controls all application volume except for Spotify """
         with PulseControl() as pulse:
             try:
-                ign_streams = [pulse.get_stream('Spotify').index,
-                               pulse.get_stream_by_prop('application.process.binary', 'Discord').index]
+                ign_streams = []
+                try:
+                    ign_streams.append(pulse.get_stream('Spotify').index)
+                    ign_streams.append(pulse.get_stream_by_prop(('application.process.binary', 'Discord'),
+                                                                ('application.name', 'WEBRTC VoiceEngine')).index)
+                except AttributeError:
+                    pass
                 streams = [s for s in pulse.get_stream_list() if s.index not in ign_streams]
                 pulse.set_stream_volume(streams[values[0]-1], values[1] / 127)
             except IndexError:
