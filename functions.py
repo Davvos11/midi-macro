@@ -8,18 +8,26 @@ from mpris import MprisControl
 
 
 class Functions:
+    @staticmethod
+    def __get_discord_stream():
+        with PulseControl() as pulse:
+            return pulse.get_stream_by_prop(('application.process.binary', 'Discord'),
+                                            ('application.name', 'WEBRTC VoiceEngine'))
+
+    @staticmethod
+    def __get_spotify_stream():
+        with PulseControl() as pulse:
+            return pulse.get_stream('Spotify')
+
     def knob_1_7(self, values):
         """ Controls Discord volume"""
         with PulseControl() as pulse:
-            stream = pulse.get_stream_by_prop(('application.process.binary', 'Discord'),
-                                              ('application.name', 'WEBRTC VoiceEngine'))
-            pulse.set_stream_volume(stream, values[1] / 127)
+            pulse.set_stream_volume(self.__get_discord_stream(), values[1] / 127)
 
     def knob_1_8(self, values):
         """ Controls Spotify volume"""
         with PulseControl() as pulse:
-            stream = pulse.get_stream('Spotify')
-            pulse.set_stream_volume(stream, values[1] / 127)
+            pulse.set_stream_volume(self.__get_spotify_stream(), values[1] / 127)
 
     def knobs_1(self, values):
         """ Controls all application volume except for Spotify """
@@ -27,13 +35,13 @@ class Functions:
             try:
                 ign_streams = []
                 try:
-                    ign_streams.append(pulse.get_stream('Spotify').index)
-                    ign_streams.append(pulse.get_stream_by_prop(('application.process.binary', 'Discord'),
-                                                                ('application.name', 'WEBRTC VoiceEngine')).index)
+                    ign_streams.append(self.__get_spotify_stream().index)
+                    ign_streams.append(self.__get_discord_stream().index)
                 except AttributeError:
                     pass
+
                 streams = [s for s in pulse.get_stream_list() if s.index not in ign_streams]
-                pulse.set_stream_volume(streams[values[0]-1], values[1] / 127)
+                pulse.set_stream_volume(streams[values[0] - 1], values[1] / 127)
             except IndexError:
                 pass
 
