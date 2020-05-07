@@ -61,7 +61,7 @@ class MidiMacro(Thread):
                 print('Starting...')
                 # Start midi thread (except on the first loop)
                 if k is not None:
-                    midi_device = midi.Midi(self.midi_io_ids[0], self.midi_io_ids[1], q)
+                    self.midi_device = midi.Midi(self.midi_io_ids[0], self.midi_io_ids[1], q)
                 # Import functions
                 functions.Functions(self.midi_device)
 
