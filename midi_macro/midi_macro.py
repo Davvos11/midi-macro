@@ -6,7 +6,7 @@ from threading import Thread
 import PySimpleGUI as sg
 from queue import Queue
 
-import midi
+from midi_macro import midi
 
 
 class MidiMacro(Thread):

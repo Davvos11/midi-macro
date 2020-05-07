@@ -2,7 +2,7 @@ from typing import Callable
 from threading import Event
 from typing import Optional
 
-from midi import Midi
+from midi_macro.midi import Midi
 from pulseaudio import PulseControl
 from mpris import MprisControl
 
