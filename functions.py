@@ -30,14 +30,14 @@ class Functions:
             pulse.set_stream_volume(self.__get_spotify_stream(), values[1] / 127)
 
     def knobs_1(self, values):
-        """ Controls all application volume except for Spotify """
+        """ Controls all application volume except for Spotify and Discord"""
         with PulseControl() as pulse:
             try:
                 ign_streams = []
                 try:
                     ign_streams.append(self.__get_spotify_stream().index)
                     ign_streams.append(self.__get_discord_stream().index)
-                except AttributeError:
+                except (AttributeError, IndexError):
                     pass
 
                 streams = [s for s in pulse.get_stream_list() if s.index not in ign_streams]
