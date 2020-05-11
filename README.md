@@ -9,7 +9,15 @@ import functions
 if __name__ == "__main__":
     m = MidiMacro(functions.Functions)
     m.run()
+    try:
+        input('Press Enter to exit')
+    except KeyboardInterrupt:
+        pass
+    m.close()
 ```
+Optionally you can set gui=True if you want to have a window to choose a midi device.
+You can also pass a Queue, which will get updated on midi events. 
+
 In the `Functions` class you can add functions to run on midi events, for example:
 ```python
 from midi_macro.midi import Midi

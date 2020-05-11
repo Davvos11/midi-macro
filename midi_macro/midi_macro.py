@@ -1,21 +1,15 @@
-import importlib
-import importlib.util
-import _thread
-from threading import Thread
-
 import PySimpleGUI as sg
 from queue import Queue
 
 from midi_macro import midi
 
 
-class MidiMacro(Thread):
-    def __init__(self, functions: type, gui=True) -> None:
-        super().__init__()
-        self.gui = gui
+class MidiMacro:
+    def __init__(self, functions: type, queue=Queue(), gui=False) -> None:
         self.functions = functions
+        self.queue = queue
 
-        if self.gui:
+        if gui:
             # Create list to display:
             devices = midi.get_devices()
             device_list = []
@@ -50,67 +44,9 @@ class MidiMacro(Thread):
     def run(self) -> None:
         functions = self.functions
 
-        # Main loop
-        k = None
-        q = Queue()
-        self.midi_device.set_queue(q)
-        try:
-            while True:
-                print('Starting...')
-                # Start midi thread (except on the first loop)
-                if k is not None:
-                    self.midi_device = midi.Midi(self.midi_io_ids[0], self.midi_io_ids[1], q)
-                # Import functions
-                functions(self.midi_device)
+        self.midi_device.set_queue(self.queue)
+        # Import functions
+        functions(self.midi_device)
 
-                while True:
-                    # Wait for keypress or click
-                    k = self.main_gui(q) if self.gui else input()
-                    if k == 'r':
-                        self.midi_device.close()
-                        importlib.reload(functions)
-                        break
-        except KeyboardInterrupt:
-            if self.midi_device is not None:
-                self.midi_device.close()
-
-    def main_gui(self, queue: Queue) -> chr:
-        def pad(n: int):
-            return sg.Button(str(n), button_color=('white', 'black'), size=(8, 5), key='pad' + str(n))
-
-        def knob(n: int):
-            return sg.Slider(range=(0, 128), default_value=10, orientation='v', size=(4, 30), key='knob' + str(n))
-
-        col1 = [[pad(i) for i in range(5, 9)],
-                [pad(i) for i in range(1, 5)]]
-        col2 = [[knob(i) for i in range(1, 5)],
-                [knob(i) for i in range(5, 9)]]
-        layout = [[sg.Column(col1), sg.Column(col2)],
-                  [sg.Button('Reload'), sg.Button('Exit')]]
-
-        window = sg.Window('Midi Macro', layout)
-        window.finalize()
-
-        def update_on_midi():
-            while True:
-                me = queue.get()
-                if me[0] == 1:
-                    if me[1] == midi.Midi.Type.CC:
-                        window['knob' + str(me[2])].update(me[3])
-                    elif me[1] == midi.Midi.Type.NOTE_ON:
-                        window['pad' + str(me[2] - 35)].update(button_color=('black', 'white'))
-                    elif me[1] == midi.Midi.Type.NOTE_OFF:
-                        window['pad' + str(me[2] - 35)].update(button_color=('white', 'black'))
-
-        _thread.start_new_thread(update_on_midi, ())
-
-        while True:
-            event, values = window.read()
-
-            if event in (None, 'Exit'):
-                if self.midi_device is not None:
-                    self.midi_device.close()
-                exit(1)
-            elif event == 'Reload':
-                window.close()
-                return 'r' if event == 'Reload' else ''
+    def close(self):
+        self.midi_device.close()
