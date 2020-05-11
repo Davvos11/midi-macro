@@ -10,10 +10,10 @@ from midi_macro import midi
 
 
 class MidiMacro(Thread):
-    def __init__(self, function_path: str, gui=True) -> None:
+    def __init__(self, functions: type, gui=True) -> None:
         super().__init__()
         self.gui = gui
-        self.function_path = function_path
+        self.functions = functions
 
         if self.gui:
             # Create list to display:
@@ -48,9 +48,7 @@ class MidiMacro(Thread):
         self.midi_io_ids = self.midi_device.get_io_ids()
 
     def run(self) -> None:
-        spec = importlib.util.spec_from_file_location("functions", self.function_path)
-        functions = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(functions)
+        functions = self.functions
 
         # Main loop
         k = None
@@ -63,7 +61,7 @@ class MidiMacro(Thread):
                 if k is not None:
                     self.midi_device = midi.Midi(self.midi_io_ids[0], self.midi_io_ids[1], q)
                 # Import functions
-                functions.Functions(self.midi_device)
+                functions(self.midi_device)
 
                 while True:
                     # Wait for keypress or click
