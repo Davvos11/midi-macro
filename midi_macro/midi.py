@@ -106,24 +106,26 @@ class Midi(threading.Thread):
                     # If there is data, enable quick mode
                     quick_mode = True
 
-                    event = self.__midi_in.read(10)[0][0]
-                    status = event[0]
-                    if status not in range(128, 239):
-                        continue
+                    events = self.__midi_in.read(10)
+                    for event in events:
+                        event = event[0]
+                        status = event[0]
+                        if status not in range(128, 239):
+                            continue
 
-                    channel = (status - 127) % 16
-                    m_type_int = (status - 128) // 16
-                    m_type = self.Type(m_type_int)
-                    value1 = event[1]
-                    value2 = event[2]
+                        channel = (status - 127) % 16
+                        m_type_int = (status - 128) // 16
+                        m_type = self.Type(m_type_int)
+                        value1 = event[1]
+                        value2 = event[2]
 
-                    if self.queue is not None:
-                        self.queue.put((channel, m_type, value1, value2))
+                        if self.queue is not None:
+                            self.queue.put((channel, m_type, value1, value2))
 
-                    function = self.__get_event(channel, m_type, value1, value2)
-                    if function is not None:
-                        t = threading.Thread(target=function, args=((value1, value2), ))
-                        t.start()
+                        function = self.__get_event(channel, m_type, value1, value2)
+                        if function is not None:
+                            t = threading.Thread(target=function, args=((value1, value2), ))
+                            t.start()
             except (NameError, AttributeError, RuntimeError):
                 return
             except midi.MidiException:
