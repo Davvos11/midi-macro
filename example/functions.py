@@ -3,8 +3,8 @@ from threading import Event
 from typing import Optional
 
 from midi_macro.midi import Midi
-from pulseaudio import PulseControl
-from mpris import MprisControl
+from example.pulseaudio import PulseControl
+from example.mpris import MprisControl
 
 
 class Functions:
