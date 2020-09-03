@@ -125,6 +125,7 @@ class Midi(threading.Thread):
                         function = self.__get_event(channel, m_type, value1, value2)
                         if function is not None:
                             t = threading.Thread(target=function, args=((value1, value2), ))
+                            t.setDaemon(True)
                             t.start()
             except (NameError, AttributeError, RuntimeError):
                 return

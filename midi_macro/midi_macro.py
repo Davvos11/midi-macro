@@ -1,11 +1,14 @@
+from threading import Thread
+
 import PySimpleGUI as sg
 from queue import Queue
 
 from midi_macro import midi
 
 
-class MidiMacro:
+class MidiMacro(Thread):
     def __init__(self, functions: type, queue=Queue(), gui=False) -> None:
+        super().__init__()
         self.functions = functions
         self.queue = queue
 

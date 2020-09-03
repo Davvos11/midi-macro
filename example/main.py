@@ -6,6 +6,8 @@ import PySimpleGUI as sg
 from midi_macro import MidiMacro, midi
 from example import functions
 
+enableGui = False
+
 
 class Gui:
     def __init__(self, queue: Queue) -> chr:
@@ -67,7 +69,11 @@ class Gui:
 
 if __name__ == "__main__":
     queue = Queue()
-    m = MidiMacro(functions.Functions, queue, True)
-    m.run()
-    Gui(queue).run()
+    m = MidiMacro(functions.Functions, queue, enableGui)
+    m.start()
+
+    if enableGui:
+        Gui(queue).run()
+    else:
+        input('Enter to exit')
     m.close()
