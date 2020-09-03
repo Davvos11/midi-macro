@@ -9,13 +9,15 @@ os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 from pygame import midi
 
 
-def get_devices() -> [tuple]:
+def get_devices(pygame_init=True) -> [tuple]:
     """ Returns a list of midi devices """
-    midi.init()
+    if pygame_init:
+        midi.init()
     result = []
     for i in range(midi.get_count()):
         result.append(midi.get_device_info(i))
-    midi.quit()
+    if pygame_init:
+        midi.quit()
     return result
 
 
@@ -45,7 +47,7 @@ class Midi(threading.Thread):
         CHANNEL_AFTERTOUCH = 5
         PITCH_WHEEL = 6
 
-    def __init_map(self) -> dict:
+    def _init_map(self) -> dict:
         """
         Create nested dicts for channel, type, value1, value2
         """
@@ -64,31 +66,63 @@ class Midi(threading.Thread):
     def __init__(self, input_id: int = None, output_id: int = None, queue: Queue = None) -> None:
         super().__init__()
         self.queue = queue
+        self.try_to_reconnect = False
 
         if input_id is not None and output_id is not None:
             midi.init()
-            self.__midi_in = midi.Input(input_id)
-            self.__midi_out = midi.Output(output_id)
+            self._midi_in = midi.Input(input_id)
+            self._midi_out = midi.Output(output_id)
         else:
             print_devices()  # List devices
             midi_io_ids = get_id_pair(int(input("Choose a midi device: ")))  # Ask for device
             midi.init()
-            self.__midi_in = midi.Input(midi_io_ids[0])
-            self.__midi_out = midi.Output(midi_io_ids[1])
+            self._midi_in = midi.Input(midi_io_ids[0])
+            self._midi_out = midi.Output(midi_io_ids[1])
 
-        self.__channel_map = self.__init_map()
-        self.__running = True
+        midi_devices = get_devices(False)
+        self._midi_in_name = midi_devices[self._midi_in.device_id]
+        self._midi_out_name = midi_devices[self._midi_out.device_id]
+
+        self._channel_map = self._init_map()
+        self._running = True
         self.start()
+
+    def wait_for_reconnect(self):
+        while True:
+            time.sleep(0.2)
+            # Refresh pygame midi
+            midi.quit()
+            midi.init()
+            # Check if the device is back in the list
+            devices = get_devices()
+            device_names = [device[1] for device in devices]
+            if self._midi_in_name[1] in device_names:
+                # Return the new IDs
+                return [self.get_device_index(self._midi_in_name), self.get_device_index(self._midi_out_name)]
+
+    @staticmethod
+    def get_device_index(device_name) -> int:
+        # Set 'in use' parameter to 0 because it is not important in this case
+        device_name = Midi._ignore_in_use(device_name)
+        devices = [Midi._ignore_in_use(device) for device in get_devices()]
+        # Return the index
+        return devices.index(device_name)
+
+    @staticmethod
+    def _ignore_in_use(device: tuple) -> tuple:
+        device = list(device)
+        device[4] = 0
+        return tuple(device)
 
     def set_queue(self, queue: Queue):
         self.queue = queue
 
     def get_io_ids(self) -> (int, int):
-        return self.__midi_in.device_id, self.__midi_out.device_id
+        return self._midi_in.device_id, self._midi_out.device_id
 
     def run(self) -> None:
         quick_mode = True
-        while self.__running:
+        while self._running:
             try:
                 # Quick mode is used so that when there is no data coming, we can disable it as to
                 # not hog the CPU by midi.poll()ing every cycle.
@@ -98,15 +132,25 @@ class Midi(threading.Thread):
                 if not quick_mode:
                     # If we are not in quick mode: wait before proceeding
                     time.sleep(0.05)
-                elif not self.__midi_in.poll():
+                elif not self._midi_in.poll():
                     # If we are in quick mode but there is no data: disable quick mode
                     quick_mode = False
 
-                if self.__midi_in.poll():
+                # Send an "Active Sensing" message. If the device disconnects, this will throw an exception
+                # noinspection PyBroadException
+                try:
+                    self._midi_out.write_short(0b11111110)
+                except Exception as e:
+                    # Sadly Pygame does not throw a specific Exception so we have to catch all of them :/
+                    if e.args[0] == b"PortMidi: `Host error'":
+                        self.try_to_reconnect = True
+                        return
+
+                if self._midi_in.poll():
                     # If there is data, enable quick mode
                     quick_mode = True
 
-                    events = self.__midi_in.read(10)
+                    events = self._midi_in.read(10)
                     for event in events:
                         event = event[0]
                         status = event[0]
@@ -122,69 +166,73 @@ class Midi(threading.Thread):
                         if self.queue is not None:
                             self.queue.put((channel, m_type, value1, value2))
 
-                        function = self.__get_event(channel, m_type, value1, value2)
+                        function = self._get_event(channel, m_type, value1, value2)
                         if function is not None:
                             t = threading.Thread(target=function, args=((value1, value2), ))
                             t.setDaemon(True)
                             t.start()
             except (NameError, AttributeError, RuntimeError):
+                # traceback.print_exc()
                 return
             except midi.MidiException:
                 pass
 
     def close(self) -> None:
-        self.__running = False
-        self.__midi_in.close()
-        self.__midi_out.close()
-        midi.quit()
+        try:
+            self._running = False
+            self._midi_in.close()
+            self._midi_out.close()
+            midi.quit()
+        except(NameError, AttributeError, RuntimeError):
+            pass
 
     def add_event(self, function: Callable[[tuple], None], channel: int, midi_type: Type,
                   value1: int = None, value2: int = None) -> None:
         name = "Midi listener for " + str(channel) + " " + str(midi_type)
 
         if value1 is None:
-            self.__channel_map[channel][midi_type][-1] = function
+            self._channel_map[channel][midi_type][-1] = function
         elif value2 is None:
             name += " " + str(value1)
-            self.__channel_map[channel][midi_type][value1][-1] = function
+            self._channel_map[channel][midi_type][value1][-1] = function
         else:
             name += " " + str(value1) + " " + str(value2)
-            self.__channel_map[channel][midi_type][value1][value2] = function
+            self._channel_map[channel][midi_type][value1][value2] = function
 
     def remove_event(self, channel: int, midi_type: Type, value1: int = None, value2: int = None) -> None:
         try:
-            self.__channel_map[channel][midi_type][value1].pop(value2)
+            self._channel_map[channel][midi_type][value1].pop(value2)
             return
         except KeyError:
             pass
         try:
-            self.__channel_map[channel][midi_type][value1].pop(-1)
+            self._channel_map[channel][midi_type][value1].pop(-1)
             return
         except KeyError:
             pass
         try:
-            self.__channel_map[channel][midi_type].pop(-1)
+            self._channel_map[channel][midi_type].pop(-1)
             return
         except KeyError:
             pass
 
-    def __get_event(self, channel: int, midi_type: Type,
-                    value1: int = None, value2: int = None) -> Callable[[tuple], None]:
+    def _get_event(self, channel: int, midi_type: Type,
+                   value1: int = None, value2: int = None) -> Callable[[tuple], None]:
         try:
-            return self.__channel_map[channel][midi_type][value1][value2]
+            return self._channel_map[channel][midi_type][value1][value2]
         except KeyError:
             pass
         try:
-            return self.__channel_map[channel][midi_type][value1][-1]
+            return self._channel_map[channel][midi_type][value1][-1]
         except KeyError:
             pass
         try:
-            return self.__channel_map[channel][midi_type][-1]
+            return self._channel_map[channel][midi_type][-1]
         except KeyError:
             pass
 
     def note_out(self, channel: int, note: int, on: bool = True):
         if on:
-            self.__midi_out.note_on(note, 127, channel)
+            self._midi_out.note_on(note, 127, channel)
         else:
-            self.__midi_out.note_off(note, 0, channel)
+            self._midi_out.note_off(note, 0, channel)

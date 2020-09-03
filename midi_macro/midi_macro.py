@@ -11,6 +11,8 @@ class MidiMacro(Thread):
         super().__init__()
         self.functions = functions
         self.queue = queue
+        self.midi_device = None
+        self.first_run = True
 
         if gui:
             # Create list to display:
@@ -37,12 +39,32 @@ class MidiMacro(Thread):
 
             # Create midi object
             ids = midi.get_id_pair(int(values['-LIST-'][0][0]))
-            self.midi_device = midi.Midi(ids[0], ids[1])
+            self.midi_in = ids[0]
+            self.midi_out = ids[1]
+            self.start_midi(ids[0], ids[1])
         else:
-            self.midi_device = midi.Midi()
+            self.start_midi()
 
-        # Get input and output ids so we can recreate the object later
-        self.midi_io_ids = self.midi_device.get_io_ids()
+    def start_midi(self, input_id: int = None, output_id: int = None, queue: Queue = None):
+        # Initialise and start Midi thread
+        self.midi_device = midi.Midi(input_id, output_id, queue)
+
+        def wait_for_thread():
+            # Wait until it finishes
+            self.midi_device.join()
+            # Restart if needed
+            if self.midi_device.try_to_reconnect:
+                print("\nTrying to reconnect...")
+                ids = self.midi_device.wait_for_reconnect()
+                self.start_midi(ids[0], ids[1], queue)
+
+        if not self.first_run:
+            print("Reconnected\nEnter to exit")
+            self.run()
+        self.first_run = False
+
+        waiter = Thread(target=wait_for_thread)
+        waiter.start()
 
     def run(self) -> None:
         functions = self.functions
