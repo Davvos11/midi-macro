@@ -142,7 +142,7 @@ class Midi(threading.Thread):
                     self._midi_out.write_short(0b11111110)
                 except Exception as e:
                     # Sadly Pygame does not throw a specific Exception so we have to catch all of them :/
-                    if e.args[0] == b"PortMidi: `Host error'":
+                    if any(x in str(e.args[0]) for x in ["PortMidi", "Bad Pointer"]):
                         self.try_to_reconnect = True
                         return
 
