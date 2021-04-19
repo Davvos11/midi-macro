@@ -1,0 +1,19 @@
+[Desktop Entry]
+Comment[en_GB]=
+Comment=
+Exec=/home/david/Documents/pers/midi-macro/example/start.sh
+GenericName[en_GB]=
+GenericName=
+Icon=org.freedesktop.LinuxAudio.Lv2Plugins.LSP
+MimeType=
+Name[en_GB]=Midi-Pulse
+Name=Midi-Pulse
+Path=/home/david/Documents/pers/midi-macro/example
+StartupNotify=true
+Terminal=true
+TerminalOptions=
+Type=Application
+X-DBUS-ServiceName=
+X-DBUS-StartupType=none
+X-KDE-SubstituteUID=false
+X-KDE-Username=
