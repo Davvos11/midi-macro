@@ -15,7 +15,8 @@ if __name__ == "__main__":
         pass
     m.close()
 ```
-Optionally you can set gui=True if you want to have a window to choose a midi device.
+Optionally you can set gui=True if you want to have a window to choose a midi device.  
+You do need tkinter for this, on Arch this is available from the `tk` package  
 You can also pass a Queue, which will get updated on midi events. 
 
 In the `Functions` class you can add functions to run on midi events, for example:
